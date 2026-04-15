@@ -1,0 +1,2982 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema GPI - Gestão de Processos Licitatórios</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- jQuery Mask para formatar moeda -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+        }
+        .sidebar .nav-link {
+            color: #ecf0f1;
+            padding: 15px 20px;
+            border-bottom: 1px solid #3a506b;
+        }
+        .sidebar .nav-link:hover {
+            background: #3498db;
+            color: white;
+        }
+        .sidebar .nav-link.active {
+            background: #3498db;
+            color: white;
+            border-left: 4px solid #e74c3c;
+        }
+        .stat-card {
+            border-radius: 15px;
+            padding: 25px;
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        .stat-card:hover {
+            transform: translateY(-8px);
+        }
+        .bg-pendente { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .bg-andamento { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .bg-concluido { background: linear-gradient(135deg, #27ae60, #229954); }
+        .bg-cancelado { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        
+        .dashboard-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            transition: transform 0.3s ease;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .tab-content {
+            padding: 20px 0;
+        }
+        
+        .btn-action {
+            margin: 2px;
+            border-radius: 8px;
+        }
+        
+        .btn-concluido {
+            background-color: #27ae60;
+            color: white;
+        }
+        .btn-concluido:hover {
+            background-color: #229954;
+            color: white;
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            display: inline-block;
+            margin: 2px;
+        }
+        
+        .empresa-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+            display: inline-block;
+            margin: 1px;
+        }
+        
+        /* Cores específicas para status de empresa */
+        .badge-arrematante { background: #9b59b6; } /* Roxo */
+        .badge-desclassificado { background: #e74c3c; } /* Vermelho */
+        .badge-classificado { background: #27ae60; } /* Verde */
+        .badge-classificado-adjudicado { background: #27ae60; } /* Verde */
+        .badge-classificado-adjudicado-homologado { background: #27ae60; } /* Verde */
+        .badge-entregue { background: #2ecc71; } /* Verde claro */
+        
+        .alert-auto-close {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        .system-header {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 15px 0;
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .report-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 5px;
+        }
+
+        .insight-card {
+            background: white;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .form-section-title {
+            color: #3498db;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .status-checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #e9ecef;
+        }
+        .status-checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .status-checkbox-item label {
+            margin: 0;
+            cursor: pointer;
+            font-size: 0.9rem;
+            flex-grow: 1;
+        }
+
+        .outro-status-container {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e7f3ff;
+            border-radius: 8px;
+            border: 1px dashed #3498db;
+        }
+
+        /* Estilo para a seção de lotes */
+        .lote-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 2px solid #3498db;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .lote-header {
+            background: #3498db;
+            color: white;
+            padding: 10px 15px;
+            margin: -15px -15px 15px -15px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .lote-title {
+            font-weight: bold;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .lote-numero-input {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.5);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            width: 250px;
+        }
+        .lote-numero-input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+        .lote-numero-input:focus {
+            background: rgba(255,255,255,0.3);
+            outline: none;
+        }
+        
+        .empresas-subsection {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .empresas-subsection-title {
+            color: #2c3e50;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .empresa-item {
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #dee2e6;
+        }
+
+        .moeda-field {
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .valor-orcado-lote {
+            background: #e8f4f8;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        /* Estilo para seções de processos */
+        .processos-tramitando {
+            background-color: #fff;
+            border-left: 4px solid #3498db;
+        }
+        
+        .processos-concluidos {
+            background-color: #f8f9fa;
+            border-left: 4px solid #27ae60;
+            margin-top: 30px;
+            padding-top: 20px;
+        }
+        
+        .concluido-badge {
+            background-color: #27ae60;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+        
+        .motivo-conclusao {
+            font-size: 11px;
+            color: #7f8c8d;
+            font-style: italic;
+            margin-top: 2px;
+        }
+
+        /* Modal de filtros */
+        .filtro-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .filtro-titulo {
+            color: #3498db;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Alertas -->
+    <div id="alertContainer" class="alert-auto-close"></div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar Menu -->
+            <nav class="col-md-3 col-lg-2 sidebar">
+                <div class="position-sticky">
+                    <div class="text-center mt-3 mb-4">
+                        <h4 class="text-white">
+                            <i class="fas fa-gavel me-2"></i>
+                            GPI Licitações
+                        </h4>
+                        <small class="text-light">Gestão de Processos Licitatórios</small>
+                    </div>
+                    
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" onclick="mostrarAba('dashboard')">
+                                <i class="fas fa-chart-bar me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="mostrarAba('cadastro')">
+                                <i class="fas fa-plus-circle me-2"></i> Cadastrar Processo
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="mostrarAba('lista')">
+                                <i class="fas fa-list me-2"></i> Lista de Processos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="mostrarAba('relatorios')">
+                                <i class="fas fa-chart-pie me-2"></i> Relatórios
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-warning" href="#" onclick="sistema.limparTodosDados()">
+                                <i class="fas fa-trash me-2"></i> Limpar Tudo
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Conteúdo Principal -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                
+                <!-- Header do Sistema -->
+                <div class="system-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="h3 mb-0">
+                                <i class="fas fa-gavel me-2"></i>
+                                Gestão de Processos Licitatórios
+                            </h1>
+                            <small>Sistema Integrado de Acompanhamento de Licitações</small>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <span class="badge bg-success">
+                                <i class="fas fa-sync-alt me-1"></i> Online
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard -->
+                <div id="dashboard" class="aba-conteudo">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <h2 class="h3">
+                            <i class="fas fa-chart-bar me-2 text-primary"></i>
+                            Dashboard - Acompanhamento de Licitações
+                        </h2>
+                        <div>
+                            <button class="btn btn-outline-secondary me-2" onclick="sistema.limparTodosDados()">
+                                <i class="fas fa-trash me-2"></i>Limpar Tudo
+                            </button>
+                            <button class="btn btn-primary" onclick="sistema.carregarDashboard()">
+                                <i class="fas fa-sync-alt me-2"></i>Atualizar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Cards de Estatísticas -->
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="stat-card bg-andamento">
+                                <h3 id="total-em-andamento">0</h3>
+                                <p><i class="fas fa-spinner me-2"></i>Em Andamento</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card bg-concluido">
+                                <h3 id="total-concluido">0</h3>
+                                <p><i class="fas fa-check-circle me-2"></i>Concluídos</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card bg-pendente">
+                                <h3 id="total-pendente">0</h3>
+                                <p><i class="fas fa-clock me-2"></i>Fases Iniciais</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card bg-cancelado">
+                                <h3 id="total-cancelado">0</h3>
+                                <p><i class="fas fa-times-circle me-2"></i>Outros Status</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráficos Principais -->
+                    <div class="chart-grid">
+                        <div class="card dashboard-card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-chart-pie me-2"></i>Distribuição por Status
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="graficoPizza"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card dashboard-card">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-chart-line me-2"></i>Evolução Mensal
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="graficoLinha"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Insights Automáticos -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card dashboard-card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-lightbulb me-2"></i>Insights e Recomendações
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="insightsContainer">
+                                        <!-- Insights serão gerados automaticamente -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cadastro de Processos Licitatórios -->
+                <div id="cadastro" class="aba-conteudo" style="display: none;">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <h2 class="h3">
+                            <i class="fas fa-plus-circle me-2 text-primary"></i>Cadastrar Novo Processo Licitatório
+                        </h2>
+                    </div>
+
+                    <div class="card dashboard-card">
+                        <div class="card-body">
+                            <form id="formItem">
+                                <input type="hidden" id="itemId">
+                                
+                                <!-- SEÇÃO 1: DADOS DO PROCESSO -->
+                                <div class="form-section">
+                                    <h5 class="form-section-title">
+                                        <i class="fas fa-file-alt me-2"></i>Dados do Processo
+                                    </h5>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="item" class="form-label">Descrição Resumida</label>
+                                                <input type="text" class="form-control" id="item" 
+                                                       placeholder="Ex: Aquisição de computadores" required>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="processo" class="form-label">Nº Processo</label>
+                                                <input type="text" class="form-control" id="processo" 
+                                                       placeholder="Ex: 12345.2024.001" required>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="numero_rdp" class="form-label">Nº RDP</label>
+                                                <input type="text" class="form-control" id="numero_rdp" 
+                                                       placeholder="Ex: RDP 001/2024">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="mb-3">
+                                                <label for="descricao" class="form-label">Descrição Detalhada do Processo</label>
+                                                <textarea class="form-control" id="descricao" rows="4" 
+                                                          placeholder="Descreva detalhadamente o objeto da licitação, especificações técnicas, quantitativos, etc..."></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- SEÇÃO 2: STATUS ATUAL DO PROCESSO -->
+                                <div class="form-section">
+                                    <h5 class="form-section-title">
+                                        <i class="fas fa-info-circle me-2"></i>Status Atual do Processo
+                                    </h5>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="unidade_atual" class="form-label">Unidade Atual</label>
+                                                <input type="text" class="form-control" id="unidade_atual" 
+                                                       placeholder="Ex: Setor de Licitações, Procuradoria">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="data_informacao" class="form-label">Data da Informação</label>
+                                                <input type="date" class="form-control" id="data_informacao" required>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="motivo" class="form-label">Motivo</label>
+                                                <input type="text" class="form-control" id="motivo" 
+                                                       placeholder="Motivo da situação atual">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mt-3">
+                                        <div class="col-12">
+                                            <label class="form-label fw-bold">Status do Processo (selecione um ou mais)</label>
+                                            <div id="statusCheckboxes" class="status-checkbox-group">
+                                                <!-- Checkboxes serão gerados via JavaScript -->
+                                            </div>
+                                            
+                                            <!-- Campo para outros status -->
+                                            <div class="outro-status-container">
+                                                <label for="outros_status" class="form-label">
+                                                    <i class="fas fa-plus-circle me-2"></i>Outros Status (caso não encontre nas opções acima)
+                                                </label>
+                                                <input type="text" class="form-control" id="outros_status" 
+                                                       placeholder="Digite outros status separados por vírgula (ex: Aguardando parecer, Em diligência)">
+                                                <small class="text-muted">Os status digitados aqui serão adicionados aos selecionados acima.</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- SEÇÃO 3: LOTES E EMPRESAS -->
+                                <div class="form-section">
+                                    <h5 class="form-section-title">
+                                        <i class="fas fa-cubes me-2"></i>Lotes e Empresas Participantes
+                                    </h5>
+                                    
+                                    <!-- Botão para adicionar lote -->
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <button type="button" class="btn btn-primary" onclick="sistema.adicionarLote()">
+                                                <i class="fas fa-plus-circle me-2"></i>Adicionar Novo Lote
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Container de Lotes -->
+                                    <div id="lotes-container">
+                                        <!-- Os lotes serão adicionados aqui dinamicamente -->
+                                    </div>
+                                </div>
+                                
+                                <!-- SEÇÃO 4: OBSERVAÇÕES GERAIS -->
+                                <div class="form-section">
+                                    <h5 class="form-section-title">
+                                        <i class="fas fa-comment me-2"></i>Observações Gerais
+                                    </h5>
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="mb-3">
+                                                <textarea class="form-control" id="observacoes" rows="3" 
+                                                          placeholder="Informações complementares, histórico, anotações relevantes..."></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="button" class="btn btn-secondary me-md-2" onclick="limparForm()">
+                                        <i class="fas fa-broom me-2"></i>Limpar Formulário
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Salvar Processo
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de Processos -->
+                <div id="lista" class="aba-conteudo" style="display: none;">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <h2 class="h3">
+                            <i class="fas fa-list me-2 text-primary"></i>Lista de Processos Licitatórios
+                        </h2>
+                        <div>
+                            <button class="btn btn-outline-danger me-2" onclick="sistema.limparTodosDados()">
+                                <i class="fas fa-trash me-2"></i>Limpar Tudo
+                            </button>
+                            <button class="btn btn-primary" onclick="sistema.carregarItens()">
+                                <i class="fas fa-sync-alt me-2"></i>Atualizar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Barra de Busca -->
+                    <div class="card dashboard-card mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <input type="text" class="form-control" id="searchInput" 
+                                           placeholder="Buscar por descrição, processo, RDP, unidade atual...">
+                                </div>
+                                <div class="col-md-4">
+                                    <select class="form-control" id="filterStatus" onchange="sistema.filtrarItens()">
+                                        <option value="">Filtrar por status</option>
+                                        <!-- Opções serão geradas via JavaScript -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PROCESSOS EM TRAMITAÇÃO -->
+                    <div class="processos-tramitando">
+                        <h5 class="mb-3 text-primary">
+                            <i class="fas fa-play-circle me-2"></i>Processos em Tramitação
+                        </h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Descrição</th>
+                                        <th>Nº Processo</th>
+                                        <th>Qtd. Lotes</th>
+                                        <th>Unidade Atual</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaItensTramitando">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">
+                                            <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                                            Nenhum processo em tramitação
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- PROCESSOS CONCLUÍDOS -->
+                    <div class="processos-concluidos">
+                        <h5 class="mb-3 text-success">
+                            <i class="fas fa-check-circle me-2"></i>Processos Concluídos
+                        </h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-success">
+                                    <tr>
+                                        <th>Descrição</th>
+                                        <th>Nº Processo</th>
+                                        <th>Qtd. Lotes</th>
+                                        <th>Unidade Atual</th>
+                                        <th>Motivo da Conclusão</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaItensConcluidos">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">
+                                            <i class="fas fa-check-circle fa-2x mb-2"></i><br>
+                                            Nenhum processo concluído
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Relatórios Avançados -->
+                <div id="relatorios" class="aba-conteudo" style="display: none;">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <h2 class="h3">
+                            <i class="fas fa-chart-pie me-2 text-primary"></i>Relatórios Avançados - Licitações
+                        </h2>
+                        <div>
+                            <button class="btn btn-success me-2" onclick="sistema.abrirModalFiltros()">
+                                <i class="fas fa-filter me-2"></i>Filtros para PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Gráficos Avançados -->
+                    <div class="chart-grid">
+                        <div class="card dashboard-card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-chart-bar me-2"></i>Status por Unidade
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="graficoBarras"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card dashboard-card">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-chart-line me-2"></i>Evolução Detalhada
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="graficoEvolucao"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Relatório Escrito Automático -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card dashboard-card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-file-alt me-2"></i>Relatório Analítico Automático
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="relatorioEscrito" class="report-section">
+                                        <!-- Relatório será gerado automaticamente -->
+                                    </div>
+                                    <button class="btn export-btn" onclick="sistema.copiarRelatorio()">
+                                        <i class="fas fa-copy me-2"></i>Copiar Relatório
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Métricas Avançadas -->
+                    <div class="row mt-4">
+                        <div class="col-md-4">
+                            <div class="card dashboard-card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-tachometer-alt me-2"></i>Métricas de Performance
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="metricasPerformance">
+                                        <!-- Métricas serão calculadas -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card dashboard-card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-clock me-2"></i>Tendências Temporais
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="tendenciasTemporais">
+                                        <!-- Tendências serão analisadas -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card dashboard-card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-chart-area me-2"></i>Previsões
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="previsoes">
+                                        <!-- Previsões serão geradas -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal de Detalhes -->
+    <div class="modal fade" id="detalhesModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-info-circle me-2"></i>Detalhes do Processo
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detalhesConteudo">
+                    <!-- Conteúdo carregado via JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Conclusão de Processo -->
+    <div class="modal fade" id="concluirModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-check-circle me-2"></i>Concluir Processo
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="concluirProcessoId">
+                    <div class="mb-3">
+                        <label for="motivoConclusao" class="form-label">Motivo da Conclusão</label>
+                        <textarea class="form-control" id="motivoConclusao" rows="3" 
+                                  placeholder="Descreva o motivo da conclusão do processo (ex: Contrato assinado, Objeto entregue, etc.)"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dataConclusao" class="form-label">Data da Conclusão</label>
+                        <input type="date" class="form-control" id="dataConclusao" value="">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" onclick="sistema.confirmarConclusao()">
+                        <i class="fas fa-check me-2"></i>Concluir Processo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Filtros para PDF -->
+    <div class="modal fade" id="filtrosPDFModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-filter me-2"></i>Filtros para Relatório PDF
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="filtro-card">
+                                <div class="filtro-titulo">
+                                    <i class="fas fa-search me-2"></i>Busca por Texto
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Palavra-chave</label>
+                                    <input type="text" class="form-control" id="filtroPalavraChave" 
+                                           placeholder="Digite para buscar em todos os campos">
+                                </div>
+                            </div>
+                            
+                            <div class="filtro-card">
+                                <div class="filtro-titulo">
+                                    <i class="fas fa-hashtag me-2"></i>Número do Processo
+                                </div>
+                                <div class="mb-3">
+                                    <input type="text" class="form-control" id="filtroNumeroProcesso" 
+                                           placeholder="Ex: 12345.2024.001">
+                                </div>
+                            </div>
+                            
+                            <div class="filtro-card">
+                                <div class="filtro-titulo">
+                                    <i class="fas fa-building me-2"></i>Unidade/Setor
+                                </div>
+                                <div class="mb-3">
+                                    <input type="text" class="form-control" id="filtroUnidade" 
+                                           placeholder="Ex: Setor de Licitações">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="filtro-card">
+                                <div class="filtro-titulo">
+                                    <i class="fas fa-tag me-2"></i>Status do Processo
+                                </div>
+                                <div class="status-checkbox-group" style="max-height: 200px;" id="filtroStatusContainer">
+                                    <!-- Checkboxes serão gerados via JavaScript -->
+                                </div>
+                            </div>
+                            
+                            <div class="filtro-card">
+                                <div class="filtro-titulo">
+                                    <i class="fas fa-calendar me-2"></i>Período
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label class="form-label">Data Inicial</label>
+                                        <input type="date" class="form-control" id="filtroDataInicial">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Data Final</label>
+                                        <input type="date" class="form-control" id="filtroDataFinal">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="filtro-card">
+                                <div class="filtro-titulo">
+                                    <i class="fas fa-check-circle me-2"></i>Tipo de Processo
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="tipoProcesso" id="tipoTodos" value="todos" checked>
+                                    <label class="form-check-label" for="tipoTodos">Todos</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="tipoProcesso" id="tipoTramitando" value="tramitando">
+                                    <label class="form-check-label" for="tipoTramitando">Apenas em Tramitação</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="tipoProcesso" id="tipoConcluidos" value="concluidos">
+                                    <label class="form-check-label" for="tipoConcluidos">Apenas Concluídos</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="sistema.limparFiltrosPDF()">
+                        <i class="fas fa-broom me-2"></i>Limpar Filtros
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="sistema.gerarPDFComFiltros()">
+                        <i class="fas fa-file-pdf me-2"></i>Gerar PDF com Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Sistema JavaScript Adaptado -->
+    <script>
+        // Lista de status predefinidos para checkboxes
+        const LISTA_STATUS = [
+            "Em análise",
+            "em andamento",
+            "em planejamento",
+            "em cotação",
+            "dotação orçamentaria",
+            "aguardando assinatura",
+            "ETP",
+            "DFD",
+            "TR",
+            "Minuta do Edital",
+            "Minuta do Contrato",
+            "Publicado",
+            "Homologado",
+            "Adjudicado"
+        ];
+
+        // Status possíveis para empresas
+        const STATUS_EMPRESA = [
+            "Arrematante",
+            "desclassificado",
+            "classificado",
+            "classificado e adjudicado",
+            "classificado, adjudicado e homologado",
+            "ENTREGUE"
+        ];
+
+        // Sistema de Cadastro
+        class SistemaCadastro {
+            constructor() {
+                this.todosItens = [];
+                this.graficos = {};
+                this.contadorLotes = 0;
+                this.contadorEmpresas = 0;
+                this.init();
+            }
+
+            init() {
+                this.carregarDashboard();
+                this.carregarItens();
+                this.configurarEventos();
+                this.gerarCheckboxesStatus();
+                this.gerarCheckboxesFiltroStatus();
+                this.atualizarFiltroStatus();
+                
+                // Configurar data atual como padrão
+                const hoje = new Date().toISOString().split('T')[0];
+                document.getElementById('data_informacao').value = hoje;
+                document.getElementById('dataConclusao').value = hoje;
+
+                // Inicializar gráficos
+                this.inicializarGraficos();
+                
+                // Adicionar primeiro lote automaticamente
+                this.adicionarLote();
+            }
+
+            // Função para formatar moeda no padrão brasileiro
+            formatarMoeda(input) {
+                let valor = input.value.replace(/\D/g, '');
+                
+                if (valor.length === 0) {
+                    input.value = '';
+                    return;
+                }
+                
+                valor = (parseInt(valor) / 100).toFixed(2);
+                valor = valor.replace('.', ',');
+                valor = valor.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+                
+                input.value = valor;
+            }
+
+            // Converter string formatada para número
+            converterMoedaParaNumero(valorFormatado) {
+                if (!valorFormatado) return 0;
+                return parseFloat(valorFormatado.replace(/\./g, '').replace(',', '.')) || 0;
+            }
+
+            // Calcular percentual de redução
+            calcularPercentualReducao(valorOrcado, valorArrematado) {
+                if (!valorOrcado || valorOrcado === 0) return 0;
+                const reducao = ((valorOrcado - valorArrematado) / valorOrcado) * 100;
+                return reducao;
+            }
+
+            // Adicionar novo lote
+            adicionarLote(dados = null) {
+                const container = document.getElementById('lotes-container');
+                const loteId = dados ? dados.id : `lote_${Date.now()}_${this.contadorLotes++}`;
+                
+                const div = document.createElement('div');
+                div.className = 'lote-card';
+                div.id = `lote_${loteId}`;
+                div.setAttribute('data-lote-id', loteId);
+                
+                const numeroLote = dados ? dados.numero : '';
+                const valorOrcadoFormatado = dados && dados.valor_orcado ? 
+                    this.formatarValorParaExibicao(dados.valor_orcado) : '';
+                
+                div.innerHTML = `
+                    <div class="lote-header">
+                        <div class="lote-title">
+                            <i class="fas fa-cube me-2"></i>
+                            <input type="text" class="lote-numero-input" 
+                                   value="${numeroLote}" 
+                                   placeholder="Digite o número do lote (ex: Único, 1, 2, Item 5...)"
+                                   style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.5); color: white; padding: 5px 10px; border-radius: 5px; width: 250px;">
+                        </div>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="sistema.removerLote(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Valor Orçado do Lote (R$)</label>
+                                <input type="text" class="form-control moeda-field lote-valor-orcado" 
+                                       value="${valorOrcadoFormatado}" placeholder="0,00" 
+                                       onkeyup="sistema.formatarMoeda(this)" 
+                                       onblur="sistema.atualizarPercentuaisLote('${loteId}')">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Observações do Lote</label>
+                                <input type="text" class="form-control lote-observacoes" 
+                                       value="${dados ? dados.observacoes || '' : ''}" 
+                                       placeholder="Observações específicas deste lote">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Subseção de Empresas do Lote -->
+                    <div class="empresas-subsection">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="empresas-subsection-title mb-0">
+                                <i class="fas fa-building me-2"></i>Empresas Participantes deste Lote
+                            </h6>
+                            <button type="button" class="btn btn-success btn-sm" onclick="sistema.adicionarEmpresa('${loteId}')">
+                                <i class="fas fa-plus me-2"></i>Adicionar Empresa
+                            </button>
+                        </div>
+                        
+                        <div id="empresas-${loteId}" class="empresas-container">
+                            <!-- Empresas serão adicionadas aqui -->
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(div);
+                
+                // Se houver empresas para este lote, adicioná-las
+                if (dados && dados.empresas && dados.empresas.length > 0) {
+                    dados.empresas.forEach(emp => {
+                        this.adicionarEmpresa(loteId, emp);
+                    });
+                }
+            }
+
+            // Remover lote
+            removerLote(botao) {
+                if (confirm('Tem certeza que deseja remover este lote? Todas as empresas associadas serão removidas.')) {
+                    const loteCard = botao.closest('.lote-card');
+                    if (loteCard) {
+                        loteCard.remove();
+                    }
+                }
+            }
+
+            // Adicionar empresa a um lote específico
+            adicionarEmpresa(loteId, dados = null) {
+                const container = document.getElementById(`empresas-${loteId}`);
+                if (!container) return;
+                
+                const empresaId = dados ? dados.id : `empresa_${Date.now()}_${this.contadorEmpresas++}`;
+                
+                const div = document.createElement('div');
+                div.className = 'empresa-item';
+                div.id = `empresa_${empresaId}`;
+                div.setAttribute('data-empresa-id', empresaId);
+                
+                // Gerar checkboxes de status da empresa
+                const statusEmpresaHTML = STATUS_EMPRESA.map(status => {
+                    const checked = dados && dados.status && dados.status.includes(status) ? 'checked' : '';
+                    return `
+                        <div class="empresa-status-item">
+                            <input type="checkbox" name="empresa_status_${loteId}_${empresaId}" value="${status}" ${checked}>
+                            <label>${status}</label>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Formatar valor se existir
+                const valorFormatado = dados && dados.valor ? this.formatarValorParaExibicao(dados.valor) : '';
+                
+                div.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-5">
+                            <div class="mb-2">
+                                <label class="form-label">Nome da Empresa</label>
+                                <input type="text" class="form-control form-control-sm empresa-nome" 
+                                       value="${dados ? dados.nome || '' : ''}" placeholder="Razão Social">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <label class="form-label">Valor Arrematado (R$)</label>
+                                <input type="text" class="form-control form-control-sm empresa-valor moeda-field" 
+                                       value="${valorFormatado}" placeholder="0,00" 
+                                       onkeyup="sistema.formatarMoeda(this)" 
+                                       onblur="sistema.calcularPercentualEmpresa(this, '${loteId}')">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-2">
+                                <label class="form-label">Redução %</label>
+                                <input type="text" class="form-control form-control-sm empresa-reducao" 
+                                       value="${dados ? dados.reducao || '' : ''}" readonly 
+                                       style="background: #f8f9fa; font-weight: bold;">
+                            </div>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <button type="button" class="btn btn-danger btn-sm mt-4" onclick="sistema.removerEmpresa(this, '${loteId}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="empresa-status-group">
+                                ${statusEmpresaHTML}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(div);
+                
+                // Calcular redução se houver dados
+                if (dados && dados.valor) {
+                    this.calcularPercentualEmpresa(div.querySelector('.empresa-valor'), loteId);
+                }
+            }
+
+            // Calcular percentual de redução para uma empresa específica
+            calcularPercentualEmpresa(input, loteId) {
+                const row = input.closest('.empresa-item');
+                const loteCard = document.getElementById(`lote_${loteId}`);
+                const valorOrcadoInput = loteCard ? loteCard.querySelector('.lote-valor-orcado') : null;
+                
+                if (!valorOrcadoInput) return;
+                
+                const valorOrcado = this.converterMoedaParaNumero(valorOrcadoInput.value);
+                const valorArrematado = this.converterMoedaParaNumero(input.value);
+                const reducaoInput = row.querySelector('.empresa-reducao');
+                
+                if (valorOrcado > 0 && valorArrematado > 0) {
+                    const reducao = this.calcularPercentualReducao(valorOrcado, valorArrematado);
+                    reducaoInput.value = reducao.toFixed(2) + '%';
+                    
+                    if (reducao > 0) {
+                        reducaoInput.style.color = '#27ae60';
+                        reducaoInput.style.fontWeight = 'bold';
+                    } else if (reducao < 0) {
+                        reducaoInput.style.color = '#e74c3c';
+                        reducaoInput.style.fontWeight = 'bold';
+                    } else {
+                        reducaoInput.style.color = '#f39c12';
+                        reducaoInput.style.fontWeight = 'bold';
+                    }
+                } else {
+                    reducaoInput.value = '0,00%';
+                }
+            }
+
+            // Atualizar todos os percentuais de um lote
+            atualizarPercentuaisLote(loteId) {
+                const empresas = document.querySelectorAll(`#empresas-${loteId} .empresa-valor`);
+                empresas.forEach(input => {
+                    this.calcularPercentualEmpresa(input, loteId);
+                });
+            }
+
+            // Remover empresa
+            removerEmpresa(botao, loteId) {
+                const empresaItem = botao.closest('.empresa-item');
+                if (empresaItem) {
+                    empresaItem.remove();
+                }
+            }
+
+            // Coletar dados dos lotes e empresas
+            getLotesData() {
+                const lotes = [];
+                const loteCards = document.querySelectorAll('#lotes-container .lote-card');
+                
+                loteCards.forEach(card => {
+                    const loteId = card.id.replace('lote_', '');
+                    const numeroInput = card.querySelector('.lote-numero-input');
+                    const valorOrcadoInput = card.querySelector('.lote-valor-orcado');
+                    const observacoesInput = card.querySelector('.lote-observacoes');
+                    
+                    const numero = numeroInput ? numeroInput.value : '';
+                    const valorOrcado = this.converterMoedaParaNumero(valorOrcadoInput ? valorOrcadoInput.value : '0');
+                    const observacoes = observacoesInput ? observacoesInput.value : '';
+                    
+                    // Coletar empresas deste lote
+                    const empresas = [];
+                    const empresaItems = card.querySelectorAll(`#empresas-${loteId} .empresa-item`);
+                    
+                    empresaItems.forEach(empItem => {
+                        const nome = empItem.querySelector('.empresa-nome')?.value || '';
+                        const valorFormatado = empItem.querySelector('.empresa-valor')?.value || '0';
+                        const valor = this.converterMoedaParaNumero(valorFormatado);
+                        const reducao = empItem.querySelector('.empresa-reducao')?.value || '';
+                        
+                        const statusCheckboxes = empItem.querySelectorAll('input[type="checkbox"]:checked');
+                        const status = Array.from(statusCheckboxes).map(cb => cb.value);
+                        
+                        if (nome) {
+                            empresas.push({
+                                id: empItem.id,
+                                nome,
+                                valor,
+                                reducao,
+                                status
+                            });
+                        }
+                    });
+                    
+                    lotes.push({
+                        id: loteId,
+                        numero,
+                        valor_orcado: valorOrcado,
+                        observacoes,
+                        empresas
+                    });
+                });
+                
+                return lotes;
+            }
+
+            formatarValorParaExibicao(valor) {
+                if (!valor) return '';
+                return valor.toFixed(2).replace('.', ',').replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+            }
+
+            gerarCheckboxesStatus() {
+                const container = document.getElementById('statusCheckboxes');
+                container.innerHTML = '';
+                
+                LISTA_STATUS.forEach(status => {
+                    const div = document.createElement('div');
+                    div.className = 'status-checkbox-item';
+                    const id = `status_${status.replace(/[^\w]/g, '_')}`;
+                    div.innerHTML = `
+                        <input type="checkbox" id="${id}" value="${status}">
+                        <label for="${id}">${status}</label>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            gerarCheckboxesFiltroStatus() {
+                const container = document.getElementById('filtroStatusContainer');
+                if (!container) return;
+                
+                container.innerHTML = '';
+                
+                LISTA_STATUS.forEach(status => {
+                    const div = document.createElement('div');
+                    div.className = 'status-checkbox-item';
+                    const id = `filtro_status_${status.replace(/[^\w]/g, '_')}`;
+                    div.innerHTML = `
+                        <input type="checkbox" class="filtro-status-checkbox" id="${id}" value="${status}">
+                        <label for="${id}">${status}</label>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            getStatusSelecionados() {
+                const checkboxes = document.querySelectorAll('#statusCheckboxes input[type="checkbox"]:checked');
+                const statusSelecionados = Array.from(checkboxes).map(cb => cb.value);
+                
+                const outrosStatus = document.getElementById('outros_status').value;
+                if (outrosStatus.trim()) {
+                    const outrosArray = outrosStatus.split(',').map(s => s.trim()).filter(s => s);
+                    statusSelecionados.push(...outrosArray);
+                }
+                
+                return statusSelecionados;
+            }
+
+            configurarEventos() {
+                document.getElementById('formItem').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.salvarItem();
+                });
+
+                document.getElementById('searchInput').addEventListener('input', (e) => {
+                    this.filtrarItens();
+                });
+            }
+
+            atualizarFiltroStatus() {
+                const select = document.getElementById('filterStatus');
+                if (!select) return;
+                
+                select.innerHTML = '<option value="">Filtrar por status</option>';
+                
+                LISTA_STATUS.forEach(status => {
+                    const option = document.createElement('option');
+                    option.value = status;
+                    option.textContent = status;
+                    select.appendChild(option);
+                });
+            }
+
+            inicializarGraficos() {
+                const ctxPizza = document.getElementById('graficoPizza').getContext('2d');
+                this.graficos.pizza = new Chart(ctxPizza, {
+                    type: 'pie',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            data: [],
+                            backgroundColor: this.gerarCoresAleatorias(10)
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+
+                const ctxLinha = document.getElementById('graficoLinha').getContext('2d');
+                this.graficos.linha = new Chart(ctxLinha, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Processos por Mês',
+                            data: [],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+
+                const ctxBarras = document.getElementById('graficoBarras').getContext('2d');
+                this.graficos.barras = new Chart(ctxBarras, {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: []
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+
+                const ctxEvolucao = document.getElementById('graficoEvolucao').getContext('2d');
+                this.graficos.evolucao = new Chart(ctxEvolucao, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Processos Finalizados',
+                            data: [],
+                            borderColor: '#27ae60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            fill: true
+                        }, {
+                            label: 'Processos em Andamento',
+                            data: [],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            gerarCoresAleatorias(quantidade) {
+                const cores = [];
+                for (let i = 0; i < quantidade; i++) {
+                    const hue = (i * 137) % 360;
+                    cores.push(`hsl(${hue}, 70%, 60%)`);
+                }
+                return cores;
+            }
+
+            carregarDashboard() {
+                try {
+                    const itens = this.obterItensLocal();
+                    
+                    const statusCount = this.calcularEstatisticasAgrupadas(itens);
+
+                    document.getElementById('total-em-andamento').textContent = statusCount.andamento || 0;
+                    document.getElementById('total-concluido').textContent = statusCount.concluidos || 0;
+                    document.getElementById('total-pendente').textContent = statusCount.iniciais || 0;
+                    document.getElementById('total-cancelado').textContent = statusCount.outros || 0;
+
+                    this.atualizarGraficos(itens);
+                    this.gerarInsights(itens, statusCount);
+
+                } catch (error) {
+                    console.error('Erro ao carregar dashboard:', error);
+                }
+            }
+
+            calcularEstatisticasAgrupadas(itens) {
+                let andamento = 0;
+                let concluidos = 0;
+                let iniciais = 0;
+                let outros = 0;
+
+                itens.forEach(item => {
+                    // Se o processo está concluído, conta como concluído
+                    if (item.concluido) {
+                        concluidos++;
+                        return;
+                    }
+                    
+                    if (item.status && Array.isArray(item.status)) {
+                        item.status.forEach(status => {
+                            const s = status.toLowerCase();
+                            if (s.includes('andamento') || s.includes('cotação') || s.includes('assinatura') || s.includes('tr') || s.includes('etp') || s.includes('dfd')) {
+                                andamento++;
+                            } else if (s.includes('homologado') || s.includes('publicado') || s.includes('adjudicado')) {
+                                concluidos++;
+                            } else if (s.includes('análise') || s.includes('planejamento') || s.includes('dotação')) {
+                                iniciais++;
+                            } else {
+                                outros++;
+                            }
+                        });
+                    }
+                });
+
+                return { andamento, concluidos, iniciais, outros };
+            }
+
+            atualizarGraficos(itens) {
+                const statusCount = this.contarStatus(itens);
+                const topStatus = Object.entries(statusCount)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 8);
+                
+                this.graficos.pizza.data.labels = topStatus.map(s => s[0]);
+                this.graficos.pizza.data.datasets[0].data = topStatus.map(s => s[1]);
+                this.graficos.pizza.data.datasets[0].backgroundColor = this.gerarCoresAleatorias(topStatus.length);
+                this.graficos.pizza.update();
+
+                const evolucaoMensal = this.calcularEvolucaoMensal(itens);
+                this.graficos.linha.data.labels = evolucaoMensal.meses;
+                this.graficos.linha.data.datasets[0].data = evolucaoMensal.valores;
+                this.graficos.linha.update();
+
+                this.atualizarGraficoBarras(itens);
+                this.atualizarGraficoEvolucao(itens);
+            }
+
+            contarStatus(itens) {
+                const contagem = {};
+                itens.forEach(item => {
+                    if (!item.concluido && item.status && Array.isArray(item.status)) {
+                        item.status.forEach(status => {
+                            contagem[status] = (contagem[status] || 0) + 1;
+                        });
+                    }
+                });
+                return contagem;
+            }
+
+            calcularEvolucaoMensal(itens) {
+                const meses = [];
+                const valores = [];
+                const hoje = new Date();
+                
+                for (let i = 5; i >= 0; i--) {
+                    const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+                    const mes = data.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+                    meses.push(mes);
+                    
+                    const count = itens.filter(item => {
+                        const itemDate = new Date(item.data_criacao);
+                        return itemDate.getMonth() === data.getMonth() && 
+                               itemDate.getFullYear() === data.getFullYear();
+                    }).length;
+                    
+                    valores.push(count);
+                }
+                
+                return { meses, valores };
+            }
+
+            atualizarGraficoBarras(itens) {
+                const unidades = [...new Set(itens.map(item => item.unidade_atual).filter(Boolean))].slice(0, 5);
+                const statusPrincipais = LISTA_STATUS.slice(0, 5);
+                const cores = this.gerarCoresAleatorias(statusPrincipais.length);
+
+                const datasets = statusPrincipais.map((status, index) => {
+                    return {
+                        label: status,
+                        data: unidades.map(unidade => 
+                            itens.filter(item => 
+                                !item.concluido &&
+                                item.unidade_atual === unidade && 
+                                item.status && 
+                                item.status.includes(status)
+                            ).length
+                        ),
+                        backgroundColor: cores[index]
+                    };
+                });
+
+                this.graficos.barras.data.labels = unidades;
+                this.graficos.barras.data.datasets = datasets;
+                this.graficos.barras.update();
+            }
+
+            atualizarGraficoEvolucao(itens) {
+                const evolucao = this.calcularEvolucaoDetalhada(itens);
+                this.graficos.evolucao.data.labels = evolucao.meses;
+                this.graficos.evolucao.data.datasets[0].data = evolucao.finalizados;
+                this.graficos.evolucao.data.datasets[1].data = evolucao.andamento;
+                this.graficos.evolucao.update();
+            }
+
+            calcularEvolucaoDetalhada(itens) {
+                const meses = [];
+                const finalizados = [];
+                const andamento = [];
+                const hoje = new Date();
+                
+                for (let i = 5; i >= 0; i--) {
+                    const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+                    const mes = data.toLocaleDateString('pt-BR', { month: 'short' });
+                    meses.push(mes);
+                    
+                    const countFinalizados = itens.filter(item => {
+                        const itemDate = new Date(item.data_criacao);
+                        return itemDate.getMonth() === data.getMonth() && 
+                               itemDate.getFullYear() === data.getFullYear() &&
+                               (item.concluido || (item.status && (item.status.includes('Homologado') || item.status.includes('Publicado') || item.status.includes('Adjudicado'))));
+                    }).length;
+                    
+                    const countAndamento = itens.filter(item => {
+                        const itemDate = new Date(item.data_criacao);
+                        return itemDate.getMonth() === data.getMonth() && 
+                               itemDate.getFullYear() === data.getFullYear() &&
+                               !item.concluido && 
+                               item.status && 
+                               !(item.status.includes('Homologado') || item.status.includes('Publicado') || item.status.includes('Adjudicado'));
+                    }).length;
+                    
+                    finalizados.push(countFinalizados);
+                    andamento.push(countAndamento);
+                }
+                
+                return { meses, finalizados, andamento };
+            }
+
+            gerarInsights(itens, statusCount) {
+                const insightsContainer = document.getElementById('insightsContainer');
+                insightsContainer.innerHTML = '';
+
+                const totalItens = itens.length;
+                if (totalItens === 0) {
+                    insightsContainer.innerHTML = `
+                        <div class="insight-card">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Comece cadastrando seus primeiros processos licitatórios</strong> para obter insights valiosos.
+                        </div>
+                    `;
+                    return;
+                }
+
+                const insights = [];
+                const statusContagem = this.contarStatus(itens);
+                const concluidos = itens.filter(item => item.concluido).length;
+
+                if (Object.keys(statusContagem).length > 0) {
+                    const statusMaisComum = Object.entries(statusContagem).reduce((a, b) => a[1] > b[1] ? a : b);
+                    insights.push(`
+                        <div class="insight-card">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            <strong>Status mais frequente:</strong> ${statusMaisComum[0]} (${statusMaisComum[1]} processos)
+                        </div>
+                    `);
+                }
+
+                const taxaConclusao = totalItens > 0 ? ((concluidos / totalItens) * 100).toFixed(1) : 0;
+                insights.push(`
+                    <div class="insight-card">
+                        <i class="fas fa-percentage me-2"></i>
+                        <strong>Taxa de conclusão:</strong> ${taxaConclusao}% dos processos
+                    </div>
+                `);
+
+                const unidades = [...new Set(itens.map(item => item.unidade_atual).filter(Boolean))];
+                if (unidades.length > 0) {
+                    const contagemUnidades = {};
+                    itens.forEach(item => {
+                        if (item.unidade_atual && !item.concluido) {
+                            contagemUnidades[item.unidade_atual] = (contagemUnidades[item.unidade_atual] || 0) + 1;
+                        }
+                    });
+                    
+                    if (Object.keys(contagemUnidades).length > 0) {
+                        const unidadeMaisAtiva = Object.entries(contagemUnidades).reduce((a, b) => a[1] > b[1] ? a : b);
+                        insights.push(`
+                            <div class="insight-card">
+                                <i class="fas fa-building me-2"></i>
+                                <strong>Unidade com mais processos ativos:</strong> ${unidadeMaisAtiva[0]} (${unidadeMaisAtiva[1]} processos)
+                            </div>
+                        `);
+                    }
+                }
+
+                insightsContainer.innerHTML = insights.join('');
+            }
+
+            carregarItens() {
+                try {
+                    const itens = this.obterItensLocal();
+                    this.todosItens = itens;
+                    this.exibirItens(itens);
+                    
+                } catch (error) {
+                    console.error('Erro ao carregar itens:', error);
+                    this.exibirErroCarregamento();
+                }
+            }
+
+            obterItensLocal() {
+                const itensSalvos = localStorage.getItem('sistemaItens');
+                return itensSalvos ? JSON.parse(itensSalvos) : [];
+            }
+
+            salvarItensLocal(itens) {
+                localStorage.setItem('sistemaItens', JSON.stringify(itens));
+            }
+
+            exibirItens(itens) {
+                const tbodyTramitando = document.getElementById('tabelaItensTramitando');
+                const tbodyConcluidos = document.getElementById('tabelaItensConcluidos');
+                
+                tbodyTramitando.innerHTML = '';
+                tbodyConcluidos.innerHTML = '';
+
+                const itensTramitando = itens.filter(item => !item.concluido);
+                const itensConcluidos = itens.filter(item => item.concluido);
+
+                if (itensTramitando.length === 0) {
+                    tbodyTramitando.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">
+                                <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                                Nenhum processo em tramitação
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    itensTramitando.forEach(item => {
+                        const tr = document.createElement('tr');
+                        
+                        const statusBadges = item.status && Array.isArray(item.status) ? 
+                            item.status.map(s => `<span class="status-badge" style="background: ${this.getStatusColor(s)}">${s}</span>`).join(' ') : 
+                            '<span class="text-muted">Nenhum</span>';
+                        
+                        const qtdLotes = item.lotes ? item.lotes.length : 0;
+                        
+                        tr.innerHTML = `
+                            <td>${item.item || '-'}</td>
+                            <td>${item.processo || '-'}</td>
+                            <td>${qtdLotes}</td>
+                            <td>${item.unidade_atual || '-'}</td>
+                            <td><div style="display: flex; flex-wrap: wrap; gap: 2px;">${statusBadges}</div></td>
+                            <td>
+                                <button class="btn btn-sm btn-info btn-action" onclick="sistema.verDetalhes(${item.id})" title="Ver detalhes">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning btn-action" onclick="sistema.editarItem(${item.id})" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-action" onclick="sistema.excluirItem(${item.id})" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <button class="btn btn-sm btn-success btn-action" onclick="sistema.abrirConclusao(${item.id})" title="Concluir processo">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbodyTramitando.appendChild(tr);
+                    });
+                }
+
+                if (itensConcluidos.length === 0) {
+                    tbodyConcluidos.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">
+                                <i class="fas fa-check-circle fa-2x mb-2"></i><br>
+                                Nenhum processo concluído
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    itensConcluidos.forEach(item => {
+                        const tr = document.createElement('tr');
+                        
+                        const qtdLotes = item.lotes ? item.lotes.length : 0;
+                        
+                        tr.innerHTML = `
+                            <td>${item.item || '-'}</td>
+                            <td>${item.processo || '-'}</td>
+                            <td>${qtdLotes}</td>
+                            <td>${item.unidade_atual || '-'}</td>
+                            <td>
+                                <span class="concluido-badge">Concluído</span>
+                                <div class="motivo-conclusao">${item.motivoConclusao || ''}</div>
+                                <small>${item.dataConclusao ? this.formatarData(item.dataConclusao) : ''}</small>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-info btn-action" onclick="sistema.verDetalhes(${item.id})" title="Ver detalhes">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning btn-action" onclick="sistema.reabrirProcesso(${item.id})" title="Reabrir processo">
+                                    <i class="fas fa-undo-alt"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-action" onclick="sistema.excluirItem(${item.id})" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbodyConcluidos.appendChild(tr);
+                    });
+                }
+            }
+
+            exibirErroCarregamento() {
+                const tbodyTramitando = document.getElementById('tabelaItensTramitando');
+                const tbodyConcluidos = document.getElementById('tabelaItensConcluidos');
+                
+                tbodyTramitando.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-danger">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
+                            Erro ao carregar processos
+                        </td>
+                    </tr>
+                `;
+                tbodyConcluidos.innerHTML = '';
+            }
+
+            getStatusColor(status) {
+                let hash = 0;
+                for (let i = 0; i < status.length; i++) {
+                    hash = status.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                const hue = Math.abs(hash) % 360;
+                return `hsl(${hue}, 70%, 50%)`;
+            }
+
+            getEmpresaStatusClass(status) {
+                const statusMap = {
+                    'Arrematante': 'badge-arrematante',
+                    'desclassificado': 'badge-desclassificado',
+                    'classificado': 'badge-classificado',
+                    'classificado e adjudicado': 'badge-classificado-adjudicado',
+                    'classificado, adjudicado e homologado': 'badge-classificado-adjudicado-homologado',
+                    'ENTREGUE': 'badge-entregue'
+                };
+                return statusMap[status] || 'badge-secondary';
+            }
+
+            formatarData(data) {
+                if (!data) return '-';
+                return new Date(data).toLocaleDateString('pt-BR');
+            }
+
+            formatarMoedaParaExibicao(valor) {
+                if (!valor) return 'R$ 0,00';
+                return `R$ ${this.formatarValorParaExibicao(valor)}`;
+            }
+
+            filtrarItens() {
+                const termo = document.getElementById('searchInput').value.toLowerCase();
+                const statusFiltro = document.getElementById('filterStatus').value;
+
+                const itensFiltrados = this.todosItens.filter(item => {
+                    // Não filtrar concluídos na busca principal
+                    if (item.concluido) return false;
+                    
+                    const matchTermo = !termo || 
+                        (item.item && item.item.toLowerCase().includes(termo)) ||
+                        (item.processo && item.processo.toLowerCase().includes(termo)) ||
+                        (item.numero_rdp && item.numero_rdp.toLowerCase().includes(termo)) ||
+                        (item.unidade_atual && item.unidade_atual.toLowerCase().includes(termo)) ||
+                        (item.descricao && item.descricao.toLowerCase().includes(termo));
+
+                    const matchStatus = !statusFiltro || (item.status && item.status.includes(statusFiltro));
+
+                    return matchTermo && matchStatus;
+                });
+
+                // Atualizar apenas a tabela de tramitação
+                const tbodyTramitando = document.getElementById('tabelaItensTramitando');
+                tbodyTramitando.innerHTML = '';
+
+                if (itensFiltrados.length === 0) {
+                    tbodyTramitando.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">
+                                <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                                Nenhum processo encontrado
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    itensFiltrados.forEach(item => {
+                        const tr = document.createElement('tr');
+                        
+                        const statusBadges = item.status && Array.isArray(item.status) ? 
+                            item.status.map(s => `<span class="status-badge" style="background: ${this.getStatusColor(s)}">${s}</span>`).join(' ') : 
+                            '<span class="text-muted">Nenhum</span>';
+                        
+                        const qtdLotes = item.lotes ? item.lotes.length : 0;
+                        
+                        tr.innerHTML = `
+                            <td>${item.item || '-'}</td>
+                            <td>${item.processo || '-'}</td>
+                            <td>${qtdLotes}</td>
+                            <td>${item.unidade_atual || '-'}</td>
+                            <td><div style="display: flex; flex-wrap: wrap; gap: 2px;">${statusBadges}</div></td>
+                            <td>
+                                <button class="btn btn-sm btn-info btn-action" onclick="sistema.verDetalhes(${item.id})" title="Ver detalhes">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning btn-action" onclick="sistema.editarItem(${item.id})" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-action" onclick="sistema.excluirItem(${item.id})" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <button class="btn btn-sm btn-success btn-action" onclick="sistema.abrirConclusao(${item.id})" title="Concluir processo">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbodyTramitando.appendChild(tr);
+                    });
+                }
+            }
+
+            abrirConclusao(id) {
+                document.getElementById('concluirProcessoId').value = id;
+                const modal = new bootstrap.Modal(document.getElementById('concluirModal'));
+                modal.show();
+            }
+
+            confirmarConclusao() {
+                const id = document.getElementById('concluirProcessoId').value;
+                const motivo = document.getElementById('motivoConclusao').value;
+                const data = document.getElementById('dataConclusao').value;
+
+                if (!motivo) {
+                    this.mostrarMensagem('Por favor, informe o motivo da conclusão.', 'warning');
+                    return;
+                }
+
+                let itens = this.obterItensLocal();
+                const index = itens.findIndex(item => item.id == id);
+
+                if (index !== -1) {
+                    itens[index].concluido = true;
+                    itens[index].motivoConclusao = motivo;
+                    itens[index].dataConclusao = data || new Date().toISOString().split('T')[0];
+                    itens[index].dataConclusaoOriginal = new Date().toISOString();
+
+                    this.salvarItensLocal(itens);
+                    this.carregarItens();
+                    this.carregarDashboard();
+
+                    // Fechar modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('concluirModal'));
+                    modal.hide();
+
+                    this.mostrarMensagem('Processo concluído com sucesso!', 'success');
+                }
+            }
+
+            reabrirProcesso(id) {
+                if (confirm('Deseja reabrir este processo? Ele voltará para a lista de processos em tramitação.')) {
+                    let itens = this.obterItensLocal();
+                    const index = itens.findIndex(item => item.id == id);
+
+                    if (index !== -1) {
+                        itens[index].concluido = false;
+                        delete itens[index].motivoConclusao;
+                        delete itens[index].dataConclusao;
+
+                        this.salvarItensLocal(itens);
+                        this.carregarItens();
+                        this.carregarDashboard();
+                        this.mostrarMensagem('Processo reaberto com sucesso!', 'success');
+                    }
+                }
+            }
+
+            salvarItem() {
+                const itemId = document.getElementById('itemId').value;
+                const statusSelecionados = this.getStatusSelecionados();
+                const lotes = this.getLotesData();
+
+                if (statusSelecionados.length === 0) {
+                    this.mostrarMensagem('Selecione pelo menos um status para o processo.', 'warning');
+                    return;
+                }
+
+                if (lotes.length === 0) {
+                    this.mostrarMensagem('Adicione pelo menos um lote ao processo.', 'warning');
+                    return;
+                }
+
+                const dados = {
+                    id: itemId ? parseInt(itemId) : Date.now(),
+                    item: document.getElementById('item').value || '',
+                    processo: document.getElementById('processo').value || '',
+                    numero_rdp: document.getElementById('numero_rdp').value || '',
+                    descricao: document.getElementById('descricao').value || '',
+                    unidade_atual: document.getElementById('unidade_atual').value || '',
+                    data_informacao: document.getElementById('data_informacao').value || new Date().toISOString().split('T')[0],
+                    motivo: document.getElementById('motivo').value || '',
+                    status: statusSelecionados,
+                    lotes: lotes,
+                    observacoes: document.getElementById('observacoes').value || '',
+                    data_criacao: new Date().toISOString(),
+                    concluido: false
+                };
+
+                if (!dados.item || !dados.processo) {
+                    this.mostrarMensagem('Os campos "Descrição Resumida" e "Nº Processo" são obrigatórios.', 'error');
+                    return;
+                }
+
+                try {
+                    let itens = this.obterItensLocal();
+
+                    if (itemId) {
+                        const index = itens.findIndex(item => item.id == itemId);
+                        if (index !== -1) {
+                            // Preservar informações de conclusão se existirem
+                            const concluido = itens[index].concluido || false;
+                            dados.concluido = concluido;
+                            if (concluido) {
+                                dados.motivoConclusao = itens[index].motivoConclusao;
+                                dados.dataConclusao = itens[index].dataConclusao;
+                            }
+                            
+                            itens[index] = { ...itens[index], ...dados };
+                            this.mostrarMensagem('Processo atualizado com sucesso!', 'success');
+                        }
+                    } else {
+                        itens.unshift(dados);
+                        this.mostrarMensagem('Processo cadastrado com sucesso!', 'success');
+                    }
+
+                    this.salvarItensLocal(itens);
+                    this.limparForm();
+                    this.carregarDashboard();
+                    this.carregarItens();
+
+                } catch (error) {
+                    console.error('Erro:', error);
+                    this.mostrarMensagem('Erro ao salvar processo', 'error');
+                }
+            }
+
+            mostrarMensagem(mensagem, tipo) {
+                const alertContainer = document.getElementById('alertContainer');
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${tipo === 'success' ? 'success' : tipo === 'warning' ? 'warning' : 'danger'} alert-dismissible fade show`;
+                alert.innerHTML = `
+                    <i class="fas fa-${tipo === 'success' ? 'check' : tipo === 'warning' ? 'exclamation-triangle' : 'exclamation-triangle'} me-2"></i>
+                    ${mensagem}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                alertContainer.appendChild(alert);
+                
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.remove();
+                    }
+                }, 5000);
+            }
+
+            verDetalhes(id) {
+                const itens = this.obterItensLocal();
+                const item = itens.find(item => item.id == id);
+
+                if (!item) {
+                    this.mostrarMensagem('Processo não encontrado', 'error');
+                    return;
+                }
+
+                const statusBadges = item.status && Array.isArray(item.status) ? 
+                    item.status.map(s => `<span class="status-badge" style="background: ${this.getStatusColor(s)}">${s}</span>`).join(' ') : 
+                    '<span class="text-muted">Nenhum status selecionado</span>';
+
+                let lotesHTML = '';
+                if (item.lotes && item.lotes.length > 0) {
+                    lotesHTML = '<div class="mt-4"><h6><i class="fas fa-cubes me-2"></i>Lotes e Empresas</h6>';
+                    
+                    item.lotes.forEach((lote, index) => {
+                        const valorOrcadoFormatado = this.formatarMoedaParaExibicao(lote.valor_orcado);
+                        const numeroLote = lote.numero || `Lote ${index + 1}`;
+                        
+                        lotesHTML += `
+                            <div class="card mt-3">
+                                <div class="card-header bg-info text-white">
+                                    <strong>${numeroLote}</strong>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Valor Orçado:</strong> ${valorOrcadoFormatado}</p>
+                                    ${lote.observacoes ? `<p><strong>Observações:</strong> ${lote.observacoes}</p>` : ''}
+                        `;
+                        
+                        if (lote.empresas && lote.empresas.length > 0) {
+                            lotesHTML += `
+                                <table class="table table-sm table-bordered mt-2">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Empresa</th>
+                                            <th>Valor Arrematado</th>
+                                            <th>Redução %</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                            `;
+                            
+                            lote.empresas.forEach(emp => {
+                                const statusEmpresa = emp.status && Array.isArray(emp.status) ?
+                                    emp.status.map(s => {
+                                        const statusClass = this.getEmpresaStatusClass(s);
+                                        return `<span class="empresa-badge ${statusClass}">${s}</span>`;
+                                    }).join(' ') :
+                                    '-';
+                                
+                                const valorFormatado = this.formatarMoedaParaExibicao(emp.valor);
+                                
+                                lotesHTML += `
+                                    <tr>
+                                        <td>${emp.nome || '-'}</td>
+                                        <td>${valorFormatado}</td>
+                                        <td><span class="percentual-reducao">${emp.reducao || '0,00%'}</span></td>
+                                        <td>${statusEmpresa}</td>
+                                    </tr>
+                                `;
+                            });
+                            
+                            lotesHTML += `</tbody></table>`;
+                        } else {
+                            lotesHTML += `<p class="text-muted">Nenhuma empresa cadastrada para este lote.</p>`;
+                        }
+                        
+                        lotesHTML += `</div></div>`;
+                    });
+                    
+                    lotesHTML += '</div>';
+                }
+
+                const conclusaoHTML = item.concluido ? `
+                    <div class="alert alert-success mt-3">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Processo Concluído</strong><br>
+                        Motivo: ${item.motivoConclusao || 'Não informado'}<br>
+                        Data: ${item.dataConclusao ? this.formatarData(item.dataConclusao) : 'Não informada'}
+                    </div>
+                ` : '';
+
+                const modalContent = document.getElementById('detalhesConteudo');
+                modalContent.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Descrição Resumida:</strong> ${item.item || '-'}</p>
+                            <p><strong>Nº Processo:</strong> ${item.processo || '-'}</p>
+                            <p><strong>Nº RDP:</strong> ${item.numero_rdp || '-'}</p>
+                            <p><strong>Unidade Atual:</strong> ${item.unidade_atual || '-'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Data da Informação:</strong> ${item.data_informacao ? this.formatarData(item.data_informacao) : '-'}</p>
+                            <p><strong>Data de Criação:</strong> ${item.data_criacao ? this.formatarData(item.data_criacao) : '-'}</p>
+                            <p><strong>Motivo:</strong> ${item.motivo || '-'}</p>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <p><strong>Descrição Detalhada:</strong></p>
+                            <p>${item.descricao || 'Sem descrição'}</p>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <p><strong>Status do Processo:</strong></p>
+                            <div>${statusBadges}</div>
+                        </div>
+                    </div>
+                    ${conclusaoHTML}
+                    ${lotesHTML}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <p><strong>Observações:</strong></p>
+                            <p>${item.observacoes || 'Sem observações'}</p>
+                        </div>
+                    </div>
+                `;
+
+                const modal = new bootstrap.Modal(document.getElementById('detalhesModal'));
+                modal.show();
+            }
+
+            editarItem(id) {
+                const itens = this.obterItensLocal();
+                const item = itens.find(item => item.id == id);
+
+                if (!item) {
+                    this.mostrarMensagem('Processo não encontrado', 'error');
+                    return;
+                }
+
+                // Limpar container de lotes
+                document.getElementById('lotes-container').innerHTML = '';
+
+                // Preencher formulário básico
+                document.getElementById('itemId').value = item.id;
+                document.getElementById('item').value = item.item || '';
+                document.getElementById('processo').value = item.processo || '';
+                document.getElementById('numero_rdp').value = item.numero_rdp || '';
+                document.getElementById('descricao').value = item.descricao || '';
+                document.getElementById('unidade_atual').value = item.unidade_atual || '';
+                document.getElementById('data_informacao').value = item.data_informacao || '';
+                document.getElementById('motivo').value = item.motivo || '';
+                document.getElementById('observacoes').value = item.observacoes || '';
+
+                // Marcar checkboxes de status
+                document.querySelectorAll('#statusCheckboxes input[type="checkbox"]').forEach(cb => {
+                    cb.checked = item.status && item.status.includes(cb.value);
+                });
+
+                const outrosStatus = item.status ? item.status.filter(s => !LISTA_STATUS.includes(s)) : [];
+                document.getElementById('outros_status').value = outrosStatus.join(', ');
+
+                // Recriar lotes com suas empresas
+                if (item.lotes && item.lotes.length > 0) {
+                    item.lotes.forEach(lote => {
+                        this.adicionarLote(lote);
+                    });
+                } else {
+                    // Se não houver lotes, adicionar um lote padrão
+                    this.adicionarLote();
+                }
+
+                mostrarAba('cadastro');
+                this.mostrarMensagem('Processo carregado para edição', 'info');
+            }
+
+            excluirItem(id) {
+                if (confirm('Tem certeza que deseja excluir este processo?')) {
+                    try {
+                        let itens = this.obterItensLocal();
+                        itens = itens.filter(item => item.id != id);
+                        this.salvarItensLocal(itens);
+                        
+                        this.mostrarMensagem('Processo excluído com sucesso!', 'success');
+                        this.carregarDashboard();
+                        this.carregarItens();
+                    } catch (error) {
+                        console.error('Erro:', error);
+                        this.mostrarMensagem('Erro ao excluir processo', 'error');
+                    }
+                }
+            }
+
+            limparForm() {
+                document.getElementById('formItem').reset();
+                document.getElementById('itemId').value = '';
+                document.getElementById('lotes-container').innerHTML = '';
+                
+                document.querySelectorAll('#statusCheckboxes input[type="checkbox"]').forEach(cb => {
+                    cb.checked = false;
+                });
+                
+                document.getElementById('outros_status').value = '';
+                
+                const hoje = new Date().toISOString().split('T')[0];
+                document.getElementById('data_informacao').value = hoje;
+                
+                // Adicionar um lote padrão (sem número automático)
+                this.adicionarLote();
+                
+                this.mostrarMensagem('Formulário limpo!', 'info');
+            }
+
+            limparTodosDados() {
+                if (confirm('TEM CERTEZA QUE DESEJA APAGAR TODOS OS DADOS?\n\nEsta ação não pode ser desfeita! Todos os processos cadastrados serão permanentemente excluídos.')) {
+                    localStorage.removeItem('sistemaItens');
+                    this.todosItens = [];
+                    this.carregarDashboard();
+                    this.carregarItens();
+                    this.limparForm();
+                    this.mostrarMensagem('Todos os dados foram apagados!', 'warning');
+                }
+            }
+
+            carregarRelatorios() {
+                this.gerarRelatorioEscrito();
+                this.gerarMetricasPerformance();
+                this.gerarTendenciasTemporais();
+                this.gerarPrevisoes();
+                this.mostrarMensagem('Relatórios gerados com sucesso!', 'success');
+            }
+
+            gerarRelatorioEscrito() {
+                const itens = this.obterItensLocal();
+                const totalItens = itens.length;
+                const statusCount = this.contarStatus(itens);
+                const concluidos = itens.filter(item => item.concluido).length;
+
+                let relatorioHTML = `
+                    <h6><i class="fas fa-chart-bar me-2"></i>Resumo Geral - Processos Licitatórios</h6>
+                    <p><strong>Data do Relatório:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
+                    <p><strong>Total de Processos Cadastrados:</strong> ${totalItens}</p>
+                    <p><strong>Processos Concluídos:</strong> ${concluidos}</p>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded">
+                                <h4 class="text-primary mb-0">${statusCount['em andamento'] || 0}</h4>
+                                <small class="text-muted">Em Andamento</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded">
+                                <h4 class="text-success mb-0">${(statusCount['Homologado'] || 0) + (statusCount['Publicado'] || 0)}</h4>
+                                <small class="text-muted">Homologados/Publicados</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded">
+                                <h4 class="text-warning mb-0">${statusCount['em planejamento'] || 0}</h4>
+                                <small class="text-muted">Em Planejamento</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded">
+                                <h4 class="text-danger mb-0">${Object.keys(statusCount).length}</h4>
+                                <small class="text-muted">Status Diferentes</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                if (totalItens > 0) {
+                    const taxaConclusao = ((concluidos / totalItens) * 100).toFixed(1);
+                    relatorioHTML += `
+                        <hr>
+                        <h6><i class="fas fa-chart-line me-2"></i>Métricas de Desempenho</h6>
+                        <p><strong>Taxa de Conclusão:</strong> ${taxaConclusao}%</p>
+                        <div class="progress mb-3" style="height: 20px;">
+                            <div class="progress-bar bg-success" style="width: ${taxaConclusao}%">
+                                ${taxaConclusao}%
+                            </div>
+                        </div>
+                    `;
+
+                    const unidades = [...new Set(itens.map(item => item.unidade_atual).filter(Boolean))];
+                    if (unidades.length > 0) {
+                        relatorioHTML += `
+                            <h6><i class="fas fa-building me-2"></i>Processos por Unidade</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Unidade</th>
+                                            <th>Total de Processos</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `;
+                        unidades.forEach(unidade => {
+                            const count = itens.filter(item => item.unidade_atual === unidade).length;
+                            relatorioHTML += `
+                                <tr>
+                                    <td>${unidade}</td>
+                                    <td>${count}</td>
+                                </tr>
+                            `;
+                        });
+                        relatorioHTML += `</tbody></table></div>`;
+                    }
+
+                    const ultimosItens = itens.slice(0, 5);
+                    relatorioHTML += `
+                        <h6><i class="fas fa-history me-2"></i>Últimos Processos Cadastrados</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Descrição</th>
+                                        <th>Nº Processo</th>
+                                        <th>Unidade</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    ultimosItens.forEach(item => {
+                        const statusTexto = item.concluido ? 'Concluído' : (item.status ? item.status.join(', ') : '-');
+                        relatorioHTML += `
+                            <tr>
+                                <td>${item.item || '-'}</td>
+                                <td>${item.processo || '-'}</td>
+                                <td>${item.unidade_atual || '-'}</td>
+                                <td>${statusTexto}</td>
+                            </tr>
+                        `;
+                    });
+                    relatorioHTML += `</tbody></table></div>`;
+                } else {
+                    relatorioHTML += `
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Nenhum processo cadastrado no sistema. Utilize o formulário de cadastro para adicionar processos.
+                        </div>
+                    `;
+                }
+
+                document.getElementById('relatorioEscrito').innerHTML = relatorioHTML;
+            }
+
+            gerarMetricasPerformance() {
+                const itens = this.obterItensLocal();
+                const totalItens = itens.length;
+                
+                let metricasHTML = '';
+                
+                if (totalItens === 0) {
+                    metricasHTML = `
+                        <div class="text-center text-muted">
+                            <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                            <p>Nenhum dado disponível para análise.</p>
+                        </div>
+                    `;
+                } else {
+                    const statusCount = this.contarStatus(itens);
+                    
+                    metricasHTML = `
+                        <div class="mb-4">
+                            <small class="text-muted">Top 5 Status mais utilizados</small>
+                            ${Object.entries(statusCount)
+                                .sort((a, b) => b[1] - a[1])
+                                .slice(0, 5)
+                                .map(([status, count]) => `
+                                <div class="mt-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span>${status}</span>
+                                        <span>${count}</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar" style="width: ${(count/totalItens)*100}%; background: ${this.getStatusColor(status)}"></div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="row text-center mt-4">
+                            <div class="col-6">
+                                <div class="border rounded p-2">
+                                    <h5 class="text-primary mb-0">${totalItens}</h5>
+                                    <small class="text-muted">Total</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="border rounded p-2">
+                                    <h5 class="text-success mb-0">${itens.filter(item => item.concluido).length}</h5>
+                                    <small class="text-muted">Concluídos</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('metricasPerformance').innerHTML = metricasHTML;
+            }
+
+            gerarTendenciasTemporais() {
+                const itens = this.obterItensLocal();
+                let tendenciasHTML = '';
+                
+                if (itens.length === 0) {
+                    tendenciasHTML = `
+                        <div class="text-center text-muted">
+                            <i class="fas fa-clock fa-2x mb-2"></i>
+                            <p>Nenhum dado disponível para análise temporal.</p>
+                        </div>
+                    `;
+                } else {
+                    const hoje = new Date();
+                    const umMesAtras = new Date(hoje.getFullYear(), hoje.getMonth() - 1, hoje.getDate());
+                    const itensRecentes = itens.filter(item => new Date(item.data_criacao) > umMesAtras).length;
+                    const concluidosRecentes = itens.filter(item => item.concluido && new Date(item.dataConclusaoOriginal || item.data_criacao) > umMesAtras).length;
+                    
+                    tendenciasHTML = `
+                        <div class="text-center mb-4">
+                            <div class="display-4 text-success">${itensRecentes}</div>
+                            <small class="text-muted">Novos processos (último mês)</small>
+                        </div>
+                        <div class="text-center mb-4">
+                            <div class="display-4 text-info">${concluidosRecentes}</div>
+                            <small class="text-muted">Concluídos (último mês)</small>
+                        </div>
+                        
+                        <div class="alert ${itensRecentes > 0 ? 'alert-success' : 'alert-info'}">
+                            <i class="fas ${itensRecentes > 0 ? 'fa-chart-line' : 'fa-chart-bar'} me-2"></i>
+                            <strong>
+                                ${itensRecentes > 0 ? 
+                                    `Aumento no fluxo de processos` : 
+                                    'Estabilidade no fluxo de trabalho'
+                                }
+                            </strong>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('tendenciasTemporais').innerHTML = tendenciasHTML;
+            }
+
+            gerarPrevisoes() {
+                const itens = this.obterItensLocal();
+                let previsoesHTML = '';
+                
+                if (itens.length < 5) {
+                    previsoesHTML = `
+                        <div class="text-center text-muted">
+                            <i class="fas fa-chart-area fa-2x mb-2"></i>
+                            <p>Dados insuficientes para previsões precisas.</p>
+                            <small>Cadastre mais processos para habilitar análises preditivas.</small>
+                        </div>
+                    `;
+                } else {
+                    const emAndamento = itens.filter(item => !item.concluido).length;
+                    const mediaConclusaoMensal = Math.round(itens.filter(item => item.concluido).length / 3) || 1; // média dos últimos 3 meses
+                    const previsaoConclusao = Math.min(emAndamento, mediaConclusaoMensal);
+                    
+                    previsoesHTML = `
+                        <div class="text-center mb-4">
+                            <div class="display-4 text-warning">${previsaoConclusao}</div>
+                            <small class="text-muted">Previsão de Conclusões (próximo mês)</small>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-bullseye me-2"></i>
+                            <strong>Meta Recomendada</strong>
+                            <div class="mt-1">
+                                <small>Acelerar processos em fases iniciais</small>
+                            </div>
+                        </div>
+                        
+                        <div class="row text-center mt-3">
+                            <div class="col-6">
+                                <h5 class="text-success">${itens.filter(item => item.concluido).length}</h5>
+                                <small class="text-muted">Já Concluídos</small>
+                            </div>
+                            <div class="col-6">
+                                <h5 class="text-info">${emAndamento}</h5>
+                                <small class="text-muted">Em Andamento</small>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('previsoes').innerHTML = previsoesHTML;
+            }
+
+            // Função para abrir modal de filtros
+            abrirModalFiltros() {
+                // Resetar checkboxes
+                document.querySelectorAll('.filtro-status-checkbox').forEach(cb => {
+                    cb.checked = false;
+                });
+                
+                const modal = new bootstrap.Modal(document.getElementById('filtrosPDFModal'));
+                modal.show();
+            }
+
+            // Função para limpar filtros
+            limparFiltrosPDF() {
+                document.getElementById('filtroPalavraChave').value = '';
+                document.getElementById('filtroNumeroProcesso').value = '';
+                document.getElementById('filtroUnidade').value = '';
+                document.getElementById('filtroDataInicial').value = '';
+                document.getElementById('filtroDataFinal').value = '';
+                document.querySelectorAll('.filtro-status-checkbox').forEach(cb => {
+                    cb.checked = false;
+                });
+                document.getElementById('tipoTodos').checked = true;
+            }
+
+            // Função para filtrar itens baseado nos filtros do PDF
+            filtrarItensParaPDF() {
+                const palavraChave = document.getElementById('filtroPalavraChave').value.toLowerCase();
+                const numeroProcesso = document.getElementById('filtroNumeroProcesso').value.toLowerCase();
+                const unidade = document.getElementById('filtroUnidade').value.toLowerCase();
+                const dataInicial = document.getElementById('filtroDataInicial').value;
+                const dataFinal = document.getElementById('filtroDataFinal').value;
+                
+                // Status selecionados
+                const statusSelecionados = [];
+                document.querySelectorAll('.filtro-status-checkbox:checked').forEach(cb => {
+                    statusSelecionados.push(cb.value);
+                });
+                
+                // Tipo de processo
+                const tipoProcesso = document.querySelector('input[name="tipoProcesso"]:checked')?.value || 'todos';
+
+                let itens = this.todosItens;
+
+                // Filtrar por tipo
+                if (tipoProcesso === 'tramitando') {
+                    itens = itens.filter(item => !item.concluido);
+                } else if (tipoProcesso === 'concluidos') {
+                    itens = itens.filter(item => item.concluido);
+                }
+
+                // Filtrar por palavra-chave
+                if (palavraChave) {
+                    itens = itens.filter(item => 
+                        (item.item && item.item.toLowerCase().includes(palavraChave)) ||
+                        (item.processo && item.processo.toLowerCase().includes(palavraChave)) ||
+                        (item.numero_rdp && item.numero_rdp.toLowerCase().includes(palavraChave)) ||
+                        (item.unidade_atual && item.unidade_atual.toLowerCase().includes(palavraChave)) ||
+                        (item.descricao && item.descricao.toLowerCase().includes(palavraChave)) ||
+                        (item.motivo && item.motivo.toLowerCase().includes(palavraChave)) ||
+                        (item.concluido && item.motivoConclusao && item.motivoConclusao.toLowerCase().includes(palavraChave))
+                    );
+                }
+
+                // Filtrar por número do processo
+                if (numeroProcesso) {
+                    itens = itens.filter(item => 
+                        item.processo && item.processo.toLowerCase().includes(numeroProcesso)
+                    );
+                }
+
+                // Filtrar por unidade
+                if (unidade) {
+                    itens = itens.filter(item => 
+                        item.unidade_atual && item.unidade_atual.toLowerCase().includes(unidade)
+                    );
+                }
+
+                // Filtrar por status
+                if (statusSelecionados.length > 0) {
+                    itens = itens.filter(item => {
+                        if (item.concluido) return false; // processos concluídos não têm status ativos
+                        return item.status && item.status.some(s => statusSelecionados.includes(s));
+                    });
+                }
+
+                // Filtrar por data
+                if (dataInicial || dataFinal) {
+                    itens = itens.filter(item => {
+                        const dataItem = new Date(item.data_informacao || item.data_criacao);
+                        
+                        if (dataInicial && new Date(dataInicial) > dataItem) return false;
+                        if (dataFinal) {
+                            const dataFim = new Date(dataFinal);
+                            dataFim.setHours(23, 59, 59);
+                            if (dataFim < dataItem) return false;
+                        }
+                        return true;
+                    });
+                }
+
+                return itens;
+            }
+
+            // Função para gerar PDF com filtros
+            gerarPDFComFiltros() {
+                const itensFiltrados = this.filtrarItensParaPDF();
+                
+                if (itensFiltrados.length === 0) {
+                    this.mostrarMensagem('Nenhum processo encontrado com os filtros selecionados.', 'warning');
+                    return;
+                }
+
+                // Fechar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('filtrosPDFModal'));
+                if (modal) modal.hide();
+
+                // Gerar PDF
+                this.gerarPDFPersonalizado(itensFiltrados);
+            }
+
+            // Função para gerar PDF personalizado com os itens filtrados
+            gerarPDFPersonalizado(itens) {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                const statusCount = this.contarStatus(itens);
+                const totalItens = itens.length;
+                const concluidos = itens.filter(item => item.concluido).length;
+                
+                let pageHeight = doc.internal.pageSize.height;
+                let pageWidth = doc.internal.pageSize.width;
+                let margin = 20;
+                let yPos = 20;
+                
+                // TÍTULO PRINCIPAL
+                doc.setFontSize(22);
+                doc.setTextColor(41, 128, 185);
+                doc.text('RELATÓRIO PERSONALIZADO DE PROCESSOS', pageWidth/2, yPos, { align: 'center' });
+                yPos += 10;
+                
+                // DATA E FILTROS
+                doc.setFontSize(10);
+                doc.setTextColor(100);
+                doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, pageWidth/2, yPos, { align: 'center' });
+                yPos += 5;
+                
+                // LINHA SEPARADORA
+                doc.setDrawColor(200);
+                doc.line(margin, yPos, pageWidth - margin, yPos);
+                yPos += 10;
+                
+                // CARDS DE RESUMO
+                doc.setFillColor(52, 152, 219);
+                doc.rect(margin, yPos, 40, 25, 'F');
+                doc.setTextColor(255);
+                doc.setFontSize(16);
+                doc.text(totalItens.toString(), margin + 20, yPos + 12, { align: 'center' });
+                doc.setFontSize(8);
+                doc.text('Total de', margin + 20, yPos + 18, { align: 'center' });
+                doc.text('Processos', margin + 20, yPos + 22, { align: 'center' });
+                
+                doc.setFillColor(46, 204, 113);
+                doc.rect(margin + 45, yPos, 40, 25, 'F');
+                doc.setTextColor(255);
+                doc.setFontSize(16);
+                doc.text(concluidos.toString(), margin + 65, yPos + 12, { align: 'center' });
+                doc.setFontSize(8);
+                doc.text('Processos', margin + 65, yPos + 18, { align: 'center' });
+                doc.text('Concluídos', margin + 65, yPos + 22, { align: 'center' });
+                
+                doc.setFillColor(241, 196, 15);
+                doc.rect(margin + 90, yPos, 40, 25, 'F');
+                doc.setTextColor(255);
+                doc.setFontSize(16);
+                doc.text((totalItens - concluidos).toString(), margin + 110, yPos + 12, { align: 'center' });
+                doc.setFontSize(8);
+                doc.text('Em', margin + 110, yPos + 18, { align: 'center' });
+                doc.text('Tramitação', margin + 110, yPos + 22, { align: 'center' });
+                
+                yPos += 35;
+                
+                // LISTA DOS PROCESSOS FILTRADOS
+                if (itens.length > 0) {
+                    for (let i = 0; i < itens.length; i++) {
+                        const item = itens[i];
+                        
+                        if (yPos > pageHeight - 50) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        
+                        // Título do processo
+                        doc.setFontSize(14);
+                        doc.setTextColor(41, 128, 185);
+                        doc.text(`Processo ${i + 1}: ${item.processo || 'N/I'}`, margin, yPos);
+                        yPos += 7;
+                        
+                        // Dados básicos
+                        doc.setFontSize(10);
+                        doc.setTextColor(0);
+                        doc.text(`Descrição: ${item.item || '-'}`, margin + 5, yPos);
+                        yPos += 5;
+                        
+                        let infoLine = `Nº RDP: ${item.numero_rdp || '-'} | Unidade: ${item.unidade_atual || '-'} | Data: ${this.formatarData(item.data_informacao)}`;
+                        if (item.concluido) {
+                            infoLine += ` | CONCLUÍDO em: ${this.formatarData(item.dataConclusao)}`;
+                        }
+                        doc.text(infoLine, margin + 5, yPos);
+                        yPos += 5;
+                        
+                        // Status
+                        if (!item.concluido && item.status && item.status.length > 0) {
+                            doc.text(`Status: ${item.status.join(', ')}`, margin + 5, yPos);
+                            yPos += 5;
+                        } else if (item.concluido) {
+                            doc.text(`Motivo da Conclusão: ${item.motivoConclusao || 'Não informado'}`, margin + 5, yPos);
+                            yPos += 5;
+                        }
+                        
+                        // LOTES
+                        if (item.lotes && item.lotes.length > 0) {
+                            doc.setFontSize(11);
+                            doc.setTextColor(52, 152, 219);
+                            doc.text('Lotes:', margin + 5, yPos);
+                            yPos += 5;
+                            
+                            for (let j = 0; j < item.lotes.length; j++) {
+                                const lote = item.lotes[j];
+                                
+                                if (yPos > pageHeight - 80) {
+                                    doc.addPage();
+                                    yPos = 20;
+                                }
+                                
+                                doc.setFontSize(10);
+                                doc.setTextColor(0);
+                                doc.setFillColor(240, 240, 240);
+                                doc.rect(margin + 10, yPos - 3, pageWidth - (margin * 2) - 20, 15, 'F');
+                                doc.text(`${lote.numero || 'Lote'} - Valor Orçado: ${this.formatarMoedaParaExibicao(lote.valor_orcado)}`, margin + 15, yPos + 2);
+                                yPos += 12;
+                                
+                                if (lote.empresas && lote.empresas.length > 0) {
+                                    const tableData = lote.empresas.map(emp => [
+                                        emp.nome || '-',
+                                        this.formatarMoedaParaExibicao(emp.valor),
+                                        emp.reducao || '0,00%',
+                                        emp.status ? emp.status.join(', ') : '-'
+                                    ]);
+                                    
+                                    doc.autoTable({
+                                        startY: yPos,
+                                        margin: { left: margin + 15, right: margin },
+                                        head: [['Empresa', 'Valor', 'Redução', 'Status']],
+                                        body: tableData,
+                                        theme: 'grid',
+                                        headStyles: { fillColor: [52, 152, 219], textColor: 255, fontSize: 8 },
+                                        styles: { fontSize: 7, cellPadding: 2 },
+                                        columnStyles: {
+                                            0: { cellWidth: 50 },
+                                            1: { cellWidth: 30, halign: 'right' },
+                                            2: { cellWidth: 20, halign: 'center' },
+                                            3: { cellWidth: 40 }
+                                        },
+                                        didDrawPage: function(data) {
+                                            yPos = data.cursor.y + 5;
+                                        }
+                                    });
+                                    
+                                    yPos = doc.lastAutoTable.finalY + 5;
+                                } else {
+                                    doc.setFontSize(8);
+                                    doc.setTextColor(150);
+                                    doc.text('Nenhuma empresa cadastrada para este lote.', margin + 15, yPos);
+                                    yPos += 5;
+                                }
+                                
+                                if (lote.observacoes) {
+                                    doc.setFontSize(8);
+                                    doc.setTextColor(100);
+                                    doc.text(`Obs: ${lote.observacoes}`, margin + 15, yPos);
+                                    yPos += 5;
+                                }
+                                
+                                yPos += 5;
+                            }
+                        }
+                        
+                        doc.setDrawColor(200);
+                        doc.line(margin, yPos, pageWidth - margin, yPos);
+                        yPos += 10;
+                    }
+                }
+                
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text('Sistema GPI - Gestão de Processos Licitatórios', pageWidth/2, pageHeight - 10, { align: 'center' });
+                
+                doc.save(`relatorio_personalizado_${new Date().toISOString().split('T')[0]}.pdf`);
+                this.mostrarMensagem('PDF personalizado gerado com sucesso!', 'success');
+            }
+
+            copiarRelatorio() {
+                const relatorioElement = document.getElementById('relatorioEscrito');
+                const texto = relatorioElement.innerText;
+                
+                navigator.clipboard.writeText(texto).then(() => {
+                    this.mostrarMensagem('Relatório copiado para a área de transferência!', 'success');
+                }).catch(() => {
+                    this.mostrarMensagem('Erro ao copiar relatório', 'error');
+                });
+            }
+        }
+
+        function mostrarAba(abaNome) {
+            document.querySelectorAll('.aba-conteudo').forEach(aba => aba.style.display = 'none');
+            document.getElementById(abaNome).style.display = 'block';
+            
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (abaNome === 'dashboard') {
+                sistema.carregarDashboard();
+            } else if (abaNome === 'lista') {
+                sistema.carregarItens();
+            } else if (abaNome === 'relatorios') {
+                sistema.carregarRelatorios();
+            }
+        }
+        
+        function limparForm() {
+            sistema.limparForm();
+        }
+        
+        let sistema;
+        document.addEventListener('DOMContentLoaded', function() {
+            sistema = new SistemaCadastro();
+        });
+    </script>
+</body>
+</html>
